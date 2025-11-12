@@ -1,0 +1,45 @@
+name: Release Package (Create or Update)
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  release-package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to modify releases
+    env:
+      RELEASE_TAG: release-v1.0.0   # Keep same tag for all test runs
+      PACKAGE_NAME: demo-package.zip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Package
+        run: |
+          mkdir -p dist
+          cp package.txt dist/
+          cd dist
+          zip $PACKAGE_NAME package.txt
+          echo "✅ Package built: $PACKAGE_NAME"
+
+      - name: Install GitHub CLI
+        run: sudo apt-get update && sudo apt-get install -y gh
+
+      - name: Upload or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Checking if release $RELEASE_TAG exists..."
+          gh release view "$RELEASE_TAG" --repo ${{ github.repository }} --json tagName >/dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "✅ Release exists — updating asset..."
+            gh release upload "$RELEASE_TAG" "dist/$PACKAGE_NAME" --clobber --repo ${{ github.repository }}
+          else
+            echo "🆕 Creating new release..."
+            gh release create "$RELEASE_TAG" "dist/$PACKAGE_NAME" \
+              --title "Release $RELEASE_TAG" \
+              --notes "Initial release or update test" \
+              --repo ${{ github.repository }}
+          fi
