@@ -32,8 +32,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🔍 Checking if release $RELEASE_TAG exists..."
-          gh release view "$RELEASE_TAG" --repo ${{ github.repository }} --json tagName >/dev/null 2>&1
-          if [ $? -eq 0 ]; then
+          if gh release view "$RELEASE_TAG" --repo ${{ github.repository }} --json tagName >/dev/null 2>&1; then
             echo "✅ Release exists — updating asset..."
             gh release upload "$RELEASE_TAG" "dist/$PACKAGE_NAME" --clobber --repo ${{ github.repository }}
           else
